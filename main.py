@@ -1,20 +1,24 @@
-from NICE import TTL_gGAN
+from TTL_GAN import TTL_GAN
 import argparse
 from utils import *
 
 """parsing and configuration"""
 
 def parse_args():
-    desc = "Pytorch implementation of NICE-GAN"
+    desc = "Pytorch implementation of TTL_GAN"
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--phase', type=str, default='train', help='[train / test]')
-    parser.add_argument('--light', type=str2bool, default=False, help='[NICE-GAN full version / NICE-GAN light version]')
+    parser.add_argument('--light', type=str2bool, default=False, help='[TTL_GAN full version / TTL_GAN light version]')
     parser.add_argument('--dataset', type=str, default='YOUR_DATASET_NAME', help='dataset_name')
 
-    parser.add_argument('--iteration', type=int, default=300000, help='The number of training iterations')
+    #parser.add_argument('--iteration', type=int, default=300000, help='The number of training iterations')
+    parser.add_argument('--iteration', type=int, default=30, help='The number of training iterations')
     parser.add_argument('--batch_size', type=int, default=1, help='The size of batch size')
-    parser.add_argument('--print_freq', type=int, default=1000, help='The number of image print freq')
-    parser.add_argument('--save_freq', type=int, default=100000, help='The number of model save freq')
+    #parser.add_argument('--print_freq', type=int, default=1000, help='The number of image print freq')
+    #parser.add_argument('--save_freq', type=int, default=100000, help='The number of model save freq')
+    
+    parser.add_argument('--print_freq', type=int, default=15, help='The number of image print freq')
+    parser.add_argument('--save_freq', type=int, default=30, help='The number of model save freq')
     parser.add_argument('--decay_flag', type=str2bool, default=True, help='The decay_flag')
 
     parser.add_argument('--lr', type=float, default=0.0001, help='The learning rate')
@@ -68,7 +72,7 @@ def main():
       exit()
 
     # open session
-    gan = NICE(args)
+    gan = TTL_GAN(args)
 
     # build graph
     gan.build_model()
