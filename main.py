@@ -1,4 +1,4 @@
-from NICE import NICE
+from NICE import TTL_gGAN
 import argparse
 from utils import *
 
