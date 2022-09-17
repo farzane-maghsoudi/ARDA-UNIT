@@ -20,12 +20,13 @@ def parse_args():
     parser.add_argument('--print_freq', type=int, default=15, help='The number of image print freq')
     parser.add_argument('--save_freq', type=int, default=30, help='The number of model save freq')
     parser.add_argument('--decay_flag', type=str2bool, default=True, help='The decay_flag')
-
+  
     parser.add_argument('--lr', type=float, default=0.0001, help='The learning rate')
     parser.add_argument('--weight_decay', type=float, default=0.0001, help='The weight decay')
     parser.add_argument('--adv_weight', type=int, default=1, help='Weight for GAN')
     parser.add_argument('--cycle_weight', type=int, default=10, help='Weight for Cycle')
     parser.add_argument('--recon_weight', type=int, default=10, help='Weight for Reconstruction')
+    parser.add_argument('--feature_weight', type=int, default=100, help='Weight for Feature similarity')
 
     parser.add_argument('--ch', type=int, default=64, help='base channel number per layer')
     parser.add_argument('--n_res', type=int, default=6, help='The number of resblock')
