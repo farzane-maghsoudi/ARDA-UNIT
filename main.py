@@ -1,14 +1,14 @@
-from TTL_GAN import TTL_GAN
+from TLNICE import TLNICE
 import argparse
 from utils import *
 
 """parsing and configuration"""
 
 def parse_args():
-    desc = "Pytorch implementation of TTL_GAN"
+    desc = "Pytorch implementation of TLNICE"
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--phase', type=str, default='train', help='[train / test]')
-    parser.add_argument('--light', type=str2bool, default=False, help='[TTL_GAN full version / TTL_GAN light version]')
+    parser.add_argument('--light', type=str2bool, default=False, help='[TLNICE full version / TLNICE light version]')
     parser.add_argument('--dataset', type=str, default='YOUR_DATASET_NAME', help='dataset_name')
 
     #parser.add_argument('--iteration', type=int, default=300000, help='The number of training iterations')
@@ -73,7 +73,7 @@ def main():
       exit()
 
     # open session
-    gan = TTL_GAN(args)
+    gan = TLNICE(args)
 
     # build graph
     gan.build_model()
