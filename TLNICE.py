@@ -36,6 +36,7 @@ class TLNICE(object) :
         self.adv_weight = args.adv_weight
         self.cycle_weight = args.cycle_weight
         self.recon_weight = args.recon_weight
+        self.feature_weight = args.feature_weight
 
         """ Generator """
         self.n_res = args.n_res
@@ -86,6 +87,7 @@ class TLNICE(object) :
         print("# adv_weight : ", self.adv_weight)
         print("# cycle_weight : ", self.cycle_weight)
         print("# recon_weight : ", self.recon_weight)
+        print("# feature_weight : ", self.feature_weight)
 
     ##################################################################################
     # Model
@@ -215,8 +217,8 @@ class TLNICE(object) :
             fake_B2A = fake_B2A.detach()
             fake_A2B = fake_A2B.detach()
 
-            fake_LA_logit, fake_GA_logit, fake_A_cam_logit, _, _ = self.disA(fake_B2A)
-            fake_LB_logit, fake_GB_logit, fake_B_cam_logit, _, _ = self.disB(fake_A2B)
+            fake_LA_logit, fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
+            fake_LB_logit, fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
 
 
             D_ad_loss_GA = self.MSE_loss(real_GA_logit, torch.ones_like(real_GA_logit).to(self.device)) + self.MSE_loss(fake_GA_logit, torch.zeros_like(fake_GA_logit).to(self.device))
@@ -225,9 +227,13 @@ class TLNICE(object) :
             D_ad_loss_LB = self.MSE_loss(real_LB_logit, torch.ones_like(real_LB_logit).to(self.device)) + self.MSE_loss(fake_LB_logit, torch.zeros_like(fake_LB_logit).to(self.device))            
             D_ad_cam_loss_A = self.MSE_loss(real_A_cam_logit, torch.ones_like(real_A_cam_logit).to(self.device)) + self.MSE_loss(fake_A_cam_logit, torch.zeros_like(fake_A_cam_logit).to(self.device))
             D_ad_cam_loss_B = self.MSE_loss(real_B_cam_logit, torch.ones_like(real_B_cam_logit).to(self.device)) + self.MSE_loss(fake_B_cam_logit, torch.zeros_like(fake_B_cam_logit).to(self.device))
+            D_feature_loss_A = self.L1_loss(real_A_z, fake_B_z)
+            D_feature_loss_B = self.L1_loss(real_B_z, fake_A_z)
 
-            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA)
-            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB)
+            #D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA)
+            #D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB)
+            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA + D_feature_loss_A)
+            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB + D_feature_loss_B)
 
             Discriminator_loss = D_loss_A + D_loss_B
             Discriminator_loss.backward()
