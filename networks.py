@@ -62,9 +62,18 @@ class ResnetGenerator(nn.Module):
                          ILN(int(ngf * mult / 2)),
                          nn.ReLU(True)
                          ]
+            UpBlock3 += [nn.ReflectionPad2d(1),   
+                         nn.Conv2d(ngf * mult, int(ngf * mult / 2), kernel_size=3, stride=1, padding=0, bias=False),
+                         ILN(int(ngf * mult / 2)),
+                         nn.ReLU(True),
+                         nn.Conv2d(int(ngf * mult / 2), int(ngf * mult / 2)*4, kernel_size=1, stride=1, bias=True),
+                         nn.PixelShuffle(2),
+                         ILN(int(ngf * mult / 2)),
+                         nn.ReLU(True)
+                         ]
 
-        UpBlock2 += [nn.ReflectionPad2d(3),
-                     nn.Conv2d(ngf, output_nc, kernel_size=7, stride=1, padding=0, bias=False),
+        UpBlock4 = [nn.ReflectionPad2d(3),
+                     nn.Conv2d(ngf * 2, output_nc, kernel_size=7, stride=1, padding=0, bias=False),
                      nn.Tanh()]
 
         self.FC = nn.Sequential(*FC)
@@ -85,7 +94,9 @@ class ResnetGenerator(nn.Module):
         for i in range(self.n_blocks):
             x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
 
-        out = self.UpBlock2(x)
+        dec1 = self.UpBlock2(x)
+        dec2 = self.UpBlock3(x)
+        out = self.UpBlock4(torch.cat([dec1, dec2], 0))
 
         return out
 
