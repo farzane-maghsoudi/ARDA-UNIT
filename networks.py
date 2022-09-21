@@ -44,9 +44,9 @@ class ResnetGenerator(nn.Module):
         self.attnorm = adaILN(ngf * mult)
         #self.attention = MultiSelfAttentionBlock(dim = ngf, featur= ngf * mult, n_channel = 8)
         conv_block = [nn.ReflectionPad2d(1),
-                       nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=use_bias),
+                       nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=False),
                        nn.LeakyReLU(0.2, True)] 
-        conv_block1 = [nn.ReflectionPad2d(1), nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=use_bias)] 
+        conv_block1 = [nn.ReflectionPad2d(1), nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=False)] 
         
         #for i in range(n_blocks):
         #    setattr(self, 'UpBlock1_' + str(i+1), ResnetAdaILNBlock(ngf * mult, use_bias=False))
@@ -110,7 +110,7 @@ class ResnetGenerator(nn.Module):
         xa1 = x
         xd = x
         xd1 = x
-        for i in range(2, n_blocks+1):
+        for i in range(2, self.n_blocks+1):
           if i%3 == 2:
             xa2 = MultiSelfAttentionBlock(xa1, self.atten, self.attrelu, self.attnorm)
             xd1 = xa2
