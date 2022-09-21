@@ -39,8 +39,17 @@ class ResnetGenerator(nn.Module):
         self.beta = nn.Linear(ngf * mult, ngf * mult, bias=False)
 
         # Up-Sampling Bottleneck
-        for i in range(n_blocks):
-            setattr(self, 'UpBlock1_' + str(i+1), ResnetAdaILNBlock(ngf * mult, use_bias=False))
+        self.atten = torch.nn.MultiheadAttention(ngf, 8)
+        self.attrelu = nn.ReLU(True)
+        self.attnorm = adaILN(ngf * mult)
+        #self.attention = MultiSelfAttentionBlock(dim = ngf, featur= ngf * mult, n_channel = 8)
+        conv_block = [nn.ReflectionPad2d(1),
+                       nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=use_bias),
+                       nn.LeakyReLU(0.2, True)] 
+        conv_block1 = [nn.ReflectionPad2d(1), nn.Conv2d(ngf * mult, ngf * mult, kernel_size=3, stride=1, padding=0, bias=use_bias)] 
+        
+        #for i in range(n_blocks):
+        #    setattr(self, 'UpBlock1_' + str(i+1), ResnetAdaILNBlock(ngf * mult, use_bias=False))
 
         # Up-Sampling. Two paths for decoding.
         UpBlock2 = []
@@ -77,12 +86,15 @@ class ResnetGenerator(nn.Module):
         UpBlock4 += [nn.ReflectionPad2d(3),
                      nn.Conv2d(ngf * 2, output_nc, kernel_size=7, stride=1, padding=0, bias=False),
                      nn.Tanh()]
+        
 
         self.FC = nn.Sequential(*FC)
         self.UpBlock0 = nn.Sequential(*UpBlock0)
         self.UpBlock2 = nn.Sequential(*UpBlock2)
         self.UpBlock3 = nn.Sequential(*UpBlock3)
         self.UpBlock4 = nn.Sequential(*UpBlock4)
+        self.conv_block = nn.Sequential(*conv_block)
+        self.conv_block1 = nn.Sequential(*conv_block1)
 
     def forward(self, z):
         x = z
@@ -95,10 +107,32 @@ class ResnetGenerator(nn.Module):
             x_ = self.FC(x.view(x.shape[0], -1))
         gamma, beta = self.gamma(x_), self.beta(x_)
 
-        for i in range(self.n_blocks):
-            x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
+        xa1 = x
+        xd = x
+        xd1 = x
+        for i in range(2, n_blocks+1):
+          if i%3 == 2:
+            xa2 = MultiSelfAttentionBlock(xa1, self.atten, self.attrelu, self.attnorm)
+            xd1 = xa2
+          elif i%3 == 0:
+            xa3 = MultiSelfAttentionBlock(xa1 + xa2, self.atten, self.attrelu, self.attnorm)
+            xd1 = xa3
+          elif i < 6:
+            xa4 = MultiSelfAttentionBlock(xa1 + xa2 + xa3, self.atten, self.attrelu, self.attnorm)
+            xd1 = xa4
+          else:
+            xd1 = xa4
+            xa4 = MultiSelfAttentionBlock(xa1 + xa2 + xa3 + xd, self.atten, self.attrelu, self.attnorm)
+            xd = xd1
+            xd1 = xa4
+            
+        xd1 = self.conv_block(xd1)
+        x = self.conv_block1(x + xd1)     
+        
+        #for i in range(self.n_blocks):
+        #    x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
 
-        out = out = self.UpBlock4(torch.cat([self.UpBlock2(x), self.UpBlock3(x)],1))
+        out = self.UpBlock4(torch.cat([self.UpBlock2(x), self.UpBlock3(x)],1))
 
         return out
 
@@ -396,3 +430,18 @@ class Discriminator(nn.Module):
         
         return out0, out1, cam_logit, heatmap, z
 
+class MultiSelfAttentionBlock(nn.Module):
+    def __init__(self, atten, relu, AdaLIN, dim = 64, featur= 256):
+        super(MultiSelfAttentionBlock, self).__init__()
+        self.dim = dim
+        self.featur = featur
+        self.atten  = atten
+        self.relu  = relu
+        self.AdaLIN  = AdaLIN
+		
+    def forward(self, x):
+        out = torch.reshape(x, (self.featur, self.dim, self.dim))
+        out, _ = self.atten(out, out, out)
+        out = self.AdaLIN(self.relu(torch.reshape(out, (1, self.featur, self.dim, self.dim))))
+        
+        return out
