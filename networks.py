@@ -42,7 +42,7 @@ class ResnetGenerator(nn.Module):
         for i in range(n_blocks):
             setattr(self, 'UpBlock1_' + str(i+1), ResnetAdaILNBlock(ngf * mult, use_bias=False))
 
-        # Up-Sampling
+        # Up-Sampling. Two paths for decoding.
         UpBlock2 = []
         UpBlock3 = []
         UpBlock4 = []
