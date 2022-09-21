@@ -44,6 +44,8 @@ class ResnetGenerator(nn.Module):
 
         # Up-Sampling
         UpBlock2 = []
+        UpBlock3 = []
+        UpBlock4 = []
         for i in range(n_downsampling):
             mult = 2**(n_downsampling - i)
             # Experiments show that the performance of Up-sample and Sub-pixel is similar,
@@ -72,13 +74,15 @@ class ResnetGenerator(nn.Module):
                          nn.ReLU(True)
                          ]
 
-        UpBlock4 = [nn.ReflectionPad2d(3),
+        UpBlock4 += [nn.ReflectionPad2d(3),
                      nn.Conv2d(ngf * 2, output_nc, kernel_size=7, stride=1, padding=0, bias=False),
                      nn.Tanh()]
 
         self.FC = nn.Sequential(*FC)
         self.UpBlock0 = nn.Sequential(*UpBlock0)
         self.UpBlock2 = nn.Sequential(*UpBlock2)
+        self.UpBlock3 = nn.Sequential(*UpBlock3)
+        self.UpBlock4 = nn.Sequential(*UpBlock4)
 
     def forward(self, z):
         x = z
@@ -94,9 +98,7 @@ class ResnetGenerator(nn.Module):
         for i in range(self.n_blocks):
             x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
 
-        dec1 = self.UpBlock2(x)
-        dec2 = self.UpBlock3(x)
-        out = self.UpBlock4(torch.cat([dec1, dec2], 0))
+        out = out = self.UpBlock4(torch.cat([self.UpBlock2(x), self.UpBlock3(x)],1))
 
         return out
 
