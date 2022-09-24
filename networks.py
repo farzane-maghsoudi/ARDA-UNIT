@@ -107,27 +107,35 @@ class ResnetGenerator(nn.Module):
             x_ = self.FC(x.view(x.shape[0], -1))
         gamma, beta = self.gamma(x_), self.beta(x_)
 
-        xa1 = x
-        xd = x
-        xd1 = x
-        for i in range(2, self.n_blocks+1):
-          if i%3 == 2:
-            xa2 = MultiSelfAttentionBlock(xa1, self.atten, self.attrelu, self.attnorm)
-            xd1 = xa2
-          elif i%3 == 0:
-            xa3 = MultiSelfAttentionBlock(xa1 + xa2, self.atten, self.attrelu, self.attnorm)
-            xd1 = xa3
-          elif i < 6:
-            xa4 = MultiSelfAttentionBlock(xa1 + xa2 + xa3, self.atten, self.attrelu, self.attnorm)
-            xd1 = xa4
-          else:
-            xd1 = xa4
-            xa4 = MultiSelfAttentionBlock(xa1 + xa2 + xa3 + xd, self.atten, self.attrelu, self.attnorm)
-            xd = xd1
-            xd1 = xa4
-            
-        xd1 = self.conv_block(xd1)
-        x = self.conv_block1(x + xd1)     
+        outat = torch.reshape(x, (256, 64, 64))
+        outat, _ = self.atten(outat, outat, outat)
+        xa11 = xa1 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+        if self.n_blocks>1:
+          for i in range(2, 8+1):
+            if i%3 == 2:
+              outat = torch.reshape(outat, (256, 64, 64))
+              outat, _ = self.atten(outat, outat, outat)
+              xa2 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              print (i)
+            elif i%3 == 0:
+              out = torch.reshape(outat + xa1, (256, 64, 64))
+              out, _ = self.atten(outat, outat, outat)
+              xa3 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              print (i)
+            elif i < 6:
+              out = torch.reshape(outat + xa1 + xa2, (256, 64, 64))
+              out, _ = self.atten(outat, outat, outat)
+              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              print (i)
+            else:
+              out = torch.reshape(outat + xa1 + xa2 + xa11, (256, 64, 64))
+              out, _ = self.atten(outat, outat, outat)
+              xa11 = xa1
+              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              print (i)
+
+        outat = self.conv_block(outat)
+        x = self.conv_block1(x + outat)     
         
         #for i in range(self.n_blocks):
         #    x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
