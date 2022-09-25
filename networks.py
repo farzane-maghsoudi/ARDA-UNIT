@@ -290,6 +290,7 @@ class ILN(nn.Module):
 class Discriminator(nn.Module):
     def __init__(self, input_nc, ndf=64, n_layers=7):
         super(Discriminator, self).__init__()
+        #Encoder
         model = [nn.ReflectionPad2d(1),
                  nn.utils.spectral_norm(
                  nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=0, bias=True)),
@@ -302,6 +303,14 @@ class Discriminator(nn.Module):
                       nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]    
 
+        
+        
+        AFF1 = [nn.ReflectionPad2d(1),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=0, bias=True)),
+                 nn.LeakyReLU(0.2, True)]
+        AFF2 = 
+        AFF = 
         # Class Activation Map
         mult = 2 ** (1)
         self.fc = nn.utils.spectral_norm(nn.Linear(ndf * mult * 2, 1, bias=False))
