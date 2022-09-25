@@ -387,6 +387,7 @@ class Discriminator(nn.Module):
         self.up1 = nn.Sequential(*up1)
         self.up2 = nn.Sequential(*up2)
         self.up3 = nn.Sequential(*up3)
+        
         self.model = nn.Sequential(*model)
 
     def forward(self, input):
@@ -408,16 +409,18 @@ class Discriminator(nn.Module):
         heatmap = torch.sum(x, dim=1, keepdim=True)
         z = x
 
-        x0 = self.Dis0_0(x)
-        x1 = self.Dis1_0(x0)
-        x0 = self.Dis0_1(x0)
-        x1 = self.Dis1_1(x1)
-        x0 = self.pad(x0)
+        x1 = self.Dis1(x)
+        x2 = self.Dis2(x)
+        x3 = self.Dis3(x)
         x1 = self.pad(x1)
-        out0 = self.conv0(x0)
-        out1 = self.conv1(x1)
+        x2 = self.pad(x2)
+        x3 = self.pad(x3)
         
-        return out0, out1, cam_logit, heatmap, z
+        out1 = self.conv1(x1)
+        out2 = self.conv2(x2)
+        out3 = self.conv3(x3)
+        
+        return out1, out2, out3, cam_logit, heatmap, z
 
 class pre_model(nn.Module):
     def __init__(self, output_layers, *args):
