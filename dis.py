@@ -3,9 +3,14 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__() 
 
         # proposed Encoder
-        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
-        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
-        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True)]
+        f1 = [nn.Conv2d(3,256, 1, bias=True), nn.MaxPool2d(4)]
+        f2 = [nn.Conv2d(3,512, 1, bias=True), nn.MaxPool2d(8)]
+        f3 = [nn.Conv2d(3,1024, 1, bias=True), nn.MaxPool2d(16)]
+        
+        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4)]
+        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
+        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
+        
         
         enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
         enc2 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
@@ -83,17 +88,41 @@ class Discriminator(nn.Module):
         self.up1 = nn.Sequential(*up1)
         self.up2 = nn.Sequential(*up2)
         self.up3 = nn.Sequential(*up3)
-
+        self.f1 = nn.Sequential(*f1)
+        self.f2 = nn.Sequential(*f2)
+        self.f3 = nn.Sequential(*f3)
+        
+        
     def forward(self, input):
-        aff1, aff2, aff3 = feature_pretrain(input)
+        #aff1, aff2, aff3 = feature_pretrain(input)
+        
+        in0 = resize2d(input, (224,224))
+        print(in0.shape)
+        print("in0.shape")
+
+        aff1 = self.f1(in0)
+        aff2 = self.f2(in0)
+        aff3 = self.f3(in0)
+        print(aff1.shape)
+        print("aff1.shape")
+        print(aff2.shape)
+        print("aff2.shape")
+        print(aff3.shape)
+        print("aff3.shape")
 
         aff1 = self.up1(aff1)
         aff2 = self.up2(aff2)
         aff3 = self.up3(aff3)
+        print(aff1.shape)
+        print("aff1.shape")
+        print(aff2.shape)
+        print("aff2.shape")
+        print(aff3.shape)
+        print("aff3.shape")
 
         aff1 = self.enc1(aff1)
-        aff2 = self.enc1(aff2)
-        aff3 = self.enc1(aff3)
+        aff2 = self.enc2(aff2)
+        aff3 = self.enc3(aff3)
         
         aff1 = aff1 * self.softmaxAFF(self.AFF1(aff1))
         aff2 = aff2 * self.softmaxAFF(self.AFF2(aff2))
