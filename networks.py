@@ -339,47 +339,44 @@ class Discriminator(nn.Module):
 
 
         #Discriminator
-        Dis0_0 = []
-        for i in range(2, n_layers - 4):   # 1+3*2^0 + 3*2^1 + 3*2^2 =22
-            mult = 2 ** (i - 1)
-            Dis0_0 += [nn.ReflectionPad2d(1),
+        Dis1 = [nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]
-
-        mult = 2 ** (n_layers - 4 - 1)
-        Dis0_1 = [nn.ReflectionPad2d(1),     #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 = 46
-                nn.utils.spectral_norm(
-                nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=1, padding=0, bias=True)),
-                nn.LeakyReLU(0.2, True)]
-        mult = 2 ** (n_layers - 4)
-        self.conv0 = nn.utils.spectral_norm(   #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 + 3*2^3= 70
-            nn.Conv2d(ndf * mult, 1, kernel_size=4, stride=1, padding=0, bias=False))
-
+        Dis2 = [nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True)]
+        Dis3 = [nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(512, 1024, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True)]
         
-        Dis1_0 = []
-        for i in range(n_layers - 4, n_layers - 2):   # 1+3*2^0 + 3*2^1 + 3*2^2 + 3*2^3=46, 1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 +3*2^4 = 94
-            mult = 2 ** (i - 1)
-            Dis1_0 += [nn.ReflectionPad2d(1),
-                      nn.utils.spectral_norm(
-                      nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=2, padding=0, bias=True)),
-                      nn.LeakyReLU(0.2, True)]
-
-        mult = 2 ** (n_layers - 2 - 1)
-        Dis1_1 = [nn.ReflectionPad2d(1),  #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 +3*2^4 + 3*2^5= 94 + 96 = 190
-                nn.utils.spectral_norm(
-                nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=1, padding=0, bias=True)),
-                nn.LeakyReLU(0.2, True)]
-        mult = 2 ** (n_layers - 2)
-        self.conv1 = nn.utils.spectral_norm(   #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 +3*2^4 + 3*2^5 + 3*2^5 = 286
-            nn.Conv2d(ndf * mult, 1, kernel_size=4, stride=1, padding=0, bias=False))
+        self.conv1 = nn.utils.spectral_norm(   #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 + 3*2^3= 70
+            nn.Conv2d(256, 1, kernel_size=4, stride=1, padding=0, bias=False))
+        self.conv2 = nn.utils.spectral_norm(
+            nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=0, bias=False))
+        self.conv3 = nn.utils.spectral_norm(
+            nn.Conv2d(1024, 1, kernel_size=4, stride=1, padding=0, bias=False))
+        
 
         self.pad = nn.ReflectionPad2d(1)
 
-        self.Dis0_0 = nn.Sequential(*Dis0_0)
-        self.Dis0_1 = nn.Sequential(*Dis0_1)
-        self.Dis1_0 = nn.Sequential(*Dis1_0)
-        self.Dis1_1 = nn.Sequential(*Dis1_1)
+        self.Dis1 = nn.Sequential(*Dis1)
+        self.Dis2 = nn.Sequential(*Dis2)
+        self.Dis3 = nn.Sequential(*Dis3)
         
         self.enc1 = nn.Sequential(*enc1)
         self.enc2 = nn.Sequential(*enc2)
