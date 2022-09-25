@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
 from torchvision import models
+from collections import OrderedDict 
+from utils import resize2d
 
 class ResnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, ngf=64, n_blocks=6, img_size=256, light=False):
@@ -292,6 +294,15 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__() 
 
         # proposed Encoder
+        enc1 = [nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(4), nn.PixelShuffle(2))]		
+        enc2 = [nn.Conv2d(512, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(2), nn.PixelShuffle(4))]
+        enc3 = [nn.Conv2d(1024, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(1), nn.PixelShuffle(8))]
+        
+        enc1 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
+        enc2 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
+        enc3 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
+        
+        
         enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(
                 nn.Conv2d(256, 128, kernel_size=1, stride=2, padding=0, bias=True), nn.ReflectionPad2d(4), nn.PixelShuffle(2)), 
                 nn.LeakyReLU(0.2, True)]		
@@ -306,7 +317,7 @@ class Discriminator(nn.Module):
         self.softmaxAFF = nn.Softmax(3)
         AFF1 = [nn.ReflectionPad2d(1),
                 nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
-                nn.InstanceNorm2d(dim)]
+                nn.InstanceNorm2d(128)]
         AFF2 = [nn.ReflectionPad2d(1),
                 nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias)]
         AFF = [nn.ReflectionPad2d(1),
