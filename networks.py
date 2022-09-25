@@ -109,29 +109,29 @@ class ResnetGenerator(nn.Module):
 
         outat = torch.reshape(x, (256, 64, 64))
         outat, _ = self.atten(outat, outat, outat)
-        xa11 = xa1 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+        xa11 = xa1 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))), gamma, beta)
         if self.n_blocks>1:
           for i in range(2, 8+1):
             if i%3 == 2:
               outat = torch.reshape(outat, (256, 64, 64))
               outat, _ = self.atten(outat, outat, outat)
-              xa2 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              xa2 = outat = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))), gamma, beta)
               print (i)
             elif i%3 == 0:
               out = torch.reshape(outat + xa1, (256, 64, 64))
               out, _ = self.atten(outat, outat, outat)
-              xa3 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              xa3 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))), gamma, beta)
               print (i)
             elif i < 6:
               out = torch.reshape(outat + xa1 + xa2, (256, 64, 64))
               out, _ = self.atten(outat, outat, outat)
-              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))), gamma, beta)
               print (i)
             else:
               out = torch.reshape(outat + xa1 + xa2 + xa11, (256, 64, 64))
               out, _ = self.atten(outat, outat, outat)
               xa11 = xa1
-              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))))
+              xa1 = out = self.attnorm(self.attrelu(torch.reshape(outat, (1, 256, 64, 64))), gamma, beta)
               print (i)
 
         outat = self.conv_block(outat)
