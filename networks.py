@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-
+from torchvision import models
 
 class ResnetGenerator(nn.Module):
     def __init__(self, input_nc, output_nc, ngf=64, n_blocks=6, img_size=256, light=False):
@@ -303,14 +303,23 @@ class Discriminator(nn.Module):
                       nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]    
 
+        # proposed Encoder
         
         
+        
+        #Proposed adaptive feature fution.
+        softmaxAFF = nn.Softmax(3)
         AFF1 = [nn.ReflectionPad2d(1),
-                 nn.utils.spectral_norm(
-                 nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=0, bias=True)),
-                 nn.LeakyReLU(0.2, True)]
-        AFF2 = 
-        AFF = 
+                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
+                nn.InstanceNorm2d(dim)]
+        AFF2 = [nn.ReflectionPad2d(1),
+                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias)]
+        AFF = [nn.ReflectionPad2d(1),
+               nn.Conv2d(3*128, 128, kernel_size=1, stride=1, padding=0, bias=use_bias),
+               nn.ReflectionPad2d(1),
+               nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=use_bias)]
+        
+        
         # Class Activation Map
         mult = 2 ** (1)
         self.fc = nn.utils.spectral_norm(nn.Linear(ndf * mult * 2, 1, bias=False))
@@ -365,6 +374,11 @@ class Discriminator(nn.Module):
         self.Dis1_1 = nn.Sequential(*Dis1_1)
 
     def forward(self, input):
+        aff1, aff2, aff3 = feature_pretrain(input)
+        
+        
+        
+        
         x = self.model(input)
 
         x_0 = x
@@ -383,8 +397,18 @@ class Discriminator(nn.Module):
 
         x = self.leaky_relu(x)
         
+        
+        
+        aff1 = 
+        aff2 = 
+        aff3 = 
+        
+        aff1 = aff1 * self.softmaxAFF(self.AFF1(aff1))
+        aff2 = aff2 * self.softmaxAFF(self.AFF2(aff2))
+        #aff = torch.cat([aff1, aff2, aff3], 1)
+        x = self.AFF(torch.cat([aff1, aff2, aff3], 1))
+        
         heatmap = torch.sum(x, dim=1, keepdim=True)
-
         z = x
 
         x0 = self.Dis0_0(x)
@@ -397,3 +421,37 @@ class Discriminator(nn.Module):
         out1 = self.conv1(x1)
         
         return out0, out1, cam_logit, heatmap, z
+
+    
+    def feature_pretrain(x):
+        x = resize2d(x, (224,224))
+        model = pre_model(output_layers = [0,1,2,3,4,5,6,7,8,9])
+        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        model.to(dev)
+        layerout = model(x)
+        layer1out = layerout['layer1']
+        layer2out = layerout['layer2']
+        layer3out = layerout['layer3']
+
+        return layer1out, layer2out, layer3out
+    
+    class pre_model(nn.Module):
+        def __init__(self, output_layers, *args):
+            super().__init__(*args)
+            self.output_layers = output_layers
+            self.selected_out = OrderedDict()
+            self.pretrained = models.resnet152(pretrained=True).cuda()
+            self.fhooks = []
+
+            for i,l in enumerate(list(self.pretrained._modules.keys())):
+                if i in self.output_layers:
+                    self.fhooks.append(getattr(self.pretrained,l).register_forward_hook(self.forward_hook(l)))
+
+        def forward_hook(self,layer_name):
+            def hook(module, input, output):
+                self.selected_out[layer_name] = output
+            return hook
+
+        def forward(self, x):
+            out = self.pretrained(x)
+            return self.selected_out
