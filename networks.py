@@ -294,9 +294,14 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__() 
 
         # proposed Encoder
-        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
-        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
-        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True)]
+        
+        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4)]
+        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.PixelShuffle(2)]
+        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.PixelShuffle(4)]
+        
+        #up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
+        #up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
+        #up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True)]
         
         enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
         enc2 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
