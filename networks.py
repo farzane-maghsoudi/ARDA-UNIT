@@ -294,36 +294,24 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__() 
 
         # proposed Encoder
-        enc1 = [nn.Conv2d(256, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(4), nn.PixelShuffle(2))]		
-        enc2 = [nn.Conv2d(512, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(2), nn.PixelShuffle(4))]
-        enc3 = [nn.Conv2d(1024, 128, kernel_size=1, stride=1, padding=0, bias=True), nn.ReflectionPad2d(1), nn.PixelShuffle(8))]
+        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
+        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
+        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True)]
         
-        enc1 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
-        enc2 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
-        enc3 += [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True), nn.LeakyReLU(0.2, True)]
-        
-        
-        enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(
-                nn.Conv2d(256, 128, kernel_size=1, stride=2, padding=0, bias=True), nn.ReflectionPad2d(4), nn.PixelShuffle(2)), 
-                nn.LeakyReLU(0.2, True)]		
-        enc2 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(
-                nn.Conv2d(512, 128, kernel_size=1, stride=2, padding=0, bias=True), nn.ReflectionPad2d(2), nn.PixelShuffle(4)), 
-                nn.LeakyReLU(0.2, True)]
-        enc3 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(
-                nn.Conv2d(1024, 128, kernel_size=1, stride=2, padding=0, bias=True), nn.ReflectionPad2d(1), nn.PixelShuffle(8)), 
-                nn.LeakyReLU(0.2, True)]
-        
+        enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
+        enc2 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
+        enc3 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
+
         #Proposed adaptive feature fution.
         self.softmaxAFF = nn.Softmax(3)
         AFF1 = [nn.ReflectionPad2d(1),
-                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias),
+                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=True),
                 nn.InstanceNorm2d(128)]
         AFF2 = [nn.ReflectionPad2d(1),
-                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=use_bias)]
-        AFF = [nn.ReflectionPad2d(1),
-               nn.Conv2d(3*128, 128, kernel_size=1, stride=1, padding=0, bias=use_bias),
+                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=True)]
+        AFF = [nn.Conv2d(3*128, 128, kernel_size=1, stride=1, padding=0, bias=True),
                nn.ReflectionPad2d(1),
-               nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=use_bias)]
+               nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)]
         
         
         # Class Activation Map
@@ -334,6 +322,7 @@ class Discriminator(nn.Module):
         self.lamda = nn.Parameter(torch.zeros(1))
 
 
+        #Discriminator
         Dis0_0 = []
         for i in range(2, n_layers - 4):   # 1+3*2^0 + 3*2^1 + 3*2^2 =22
             mult = 2 ** (i - 1)
@@ -382,9 +371,17 @@ class Discriminator(nn.Module):
         self.AFF1 = nn.Sequential(*AFF1)
         self.AFF2 = nn.Sequential(*AFF2)
         self.AFF = nn.Sequential(*AFF)
+        self.up1 = nn.Sequential(*up1)
+        self.up2 = nn.Sequential(*up2)
+        self.up3 = nn.Sequential(*up3)
 
     def forward(self, input):
         aff1, aff2, aff3 = feature_pretrain(input)
+
+        aff1 = self.up1(aff1)
+        aff2 = self.up2(aff2)
+        aff3 = self.up3(aff3)
+
         aff1 = self.enc1(aff1)
         aff2 = self.enc1(aff2)
         aff3 = self.enc1(aff3)
@@ -420,36 +417,35 @@ class Discriminator(nn.Module):
         
         return out0, out1, cam_logit, heatmap, z
 
-    
-    def feature_pretrain(x):
-        x = resize2d(x, (224,224))
-        model = pre_model(output_layers = [0,1,2,3,4,5,6,7,8,9])
-        dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-        model.to(dev)
-        layerout = model(x)
-        layer1out = layerout['layer1']
-        layer2out = layerout['layer2']
-        layer3out = layerout['layer3']
+class pre_model(nn.Module):
+    def __init__(self, output_layers, *args):
+        super().__init__(*args)
+        self.output_layers = output_layers
+        self.selected_out = OrderedDict()
+        self.pretrained = models.resnet152(pretrained=True).cuda()
+        self.fhooks = []
 
-        return layer1out, layer2out, layer3out
-    
-    class pre_model(nn.Module):
-        def __init__(self, output_layers, *args):
-            super().__init__(*args)
-            self.output_layers = output_layers
-            self.selected_out = OrderedDict()
-            self.pretrained = models.resnet152(pretrained=True).cuda()
-            self.fhooks = []
+        for i,l in enumerate(list(self.pretrained._modules.keys())):
+            if i in self.output_layers:
+                self.fhooks.append(getattr(self.pretrained,l).register_forward_hook(self.forward_hook(l)))
 
-            for i,l in enumerate(list(self.pretrained._modules.keys())):
-                if i in self.output_layers:
-                    self.fhooks.append(getattr(self.pretrained,l).register_forward_hook(self.forward_hook(l)))
+    def forward_hook(self,layer_name):
+        def hook(module, input, output):
+            self.selected_out[layer_name] = output
+        return hook
 
-        def forward_hook(self,layer_name):
-            def hook(module, input, output):
-                self.selected_out[layer_name] = output
-            return hook
+    def forward(self, x):
+        out = self.pretrained(x)
+        return self.selected_out
 
-        def forward(self, x):
-            out = self.pretrained(x)
-            return self.selected_out
+def feature_pretrain(x):
+    x = resize2d(x, (224,224))
+    model = pre_model(output_layers = [0,1,2,3,4,5,6,7,8,9])
+    dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+    model.to(dev)
+    layerout = model(x)
+    layer1out = layerout['layer1']
+    layer2out = layerout['layer2']
+    layer3out = layerout['layer3']
+
+    return layer1out, layer2out, layer3out
