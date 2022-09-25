@@ -64,3 +64,6 @@ def tensor2numpy(x):
 
 def RGB2BGR(x):
     return cv2.cvtColor(x, cv2.COLOR_RGB2BGR)
+
+def resize2d(img, size):
+    return (F.adaptive_avg_pool2d(Variable(img,volatile=True), size)).data
