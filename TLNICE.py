@@ -130,7 +130,7 @@ class TLNICE(object) :
         print('[Network %s] Total number of parameters: ' % 'disA', params)
         print('[Network %s] Total number of FLOPs: ' % 'disA', macs)
         print('-----------------------------------------------')
-        _,_, _,  _, real_A_ae = self.disA(input)
+        _,_,_, _,  _, real_A_ae = self.disA(input)
         macs, params = profile(self.gen2B, inputs=(real_A_ae, ))
         macs, params = clever_format([macs*2, params*2], "%.3f")
         print('[Network %s] Total number of parameters: ' % 'gen2B', params)
@@ -208,8 +208,8 @@ class TLNICE(object) :
             # Update D
             self.D_optim.zero_grad()
 
-            real_LA_logit,real_GA_logit, real_A_cam_logit, _, real_A_z = self.disA(real_A)
-            real_LB_logit,real_GB_logit, real_B_cam_logit, _, real_B_z = self.disB(real_B)
+            real_LA_logit,real_MA_logit,real_GA_logit, real_A_cam_logit, _, real_A_z = self.disA(real_A)
+            real_LB_logit,real_MA_logit,real_GB_logit, real_B_cam_logit, _, real_B_z = self.disB(real_B)
 
             fake_A2B = self.gen2B(real_A_z)
             fake_B2A = self.gen2A(real_B_z)
@@ -217,23 +217,25 @@ class TLNICE(object) :
             fake_B2A = fake_B2A.detach()
             fake_A2B = fake_A2B.detach()
 
-            fake_LA_logit, fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
-            fake_LB_logit, fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
+            fake_LA_logit,fake_MA_logit,fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
+            fake_LB_logit,fake_MA_logit,fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
 
 
             D_ad_loss_GA = self.MSE_loss(real_GA_logit, torch.ones_like(real_GA_logit).to(self.device)) + self.MSE_loss(fake_GA_logit, torch.zeros_like(fake_GA_logit).to(self.device))
+            D_ad_loss_MA = self.MSE_loss(real_MA_logit, torch.ones_like(real_MA_logit).to(self.device)) + self.MSE_loss(fake_MA_logit, torch.zeros_like(fake_MA_logit).to(self.device))
             D_ad_loss_LA = self.MSE_loss(real_LA_logit, torch.ones_like(real_LA_logit).to(self.device)) + self.MSE_loss(fake_LA_logit, torch.zeros_like(fake_LA_logit).to(self.device))
             D_ad_loss_GB = self.MSE_loss(real_GB_logit, torch.ones_like(real_GB_logit).to(self.device)) + self.MSE_loss(fake_GB_logit, torch.zeros_like(fake_GB_logit).to(self.device))
-            D_ad_loss_LB = self.MSE_loss(real_LB_logit, torch.ones_like(real_LB_logit).to(self.device)) + self.MSE_loss(fake_LB_logit, torch.zeros_like(fake_LB_logit).to(self.device))            
+            D_ad_loss_MB = self.MSE_loss(real_MB_logit, torch.ones_like(real_MB_logit).to(self.device)) + self.MSE_loss(fake_MB_logit, torch.zeros_like(fake_MB_logit).to(self.device))
+            D_ad_loss_LB = self.MSE_loss(real_LB_logit, torch.ones_like(real_LB_logit).to(self.device)) + self.MSE_loss(fake_LB_logit, torch.zeros_like(fake_LB_logit).to(self.device))
             D_ad_cam_loss_A = self.MSE_loss(real_A_cam_logit, torch.ones_like(real_A_cam_logit).to(self.device)) + self.MSE_loss(fake_A_cam_logit, torch.zeros_like(fake_A_cam_logit).to(self.device))
             D_ad_cam_loss_B = self.MSE_loss(real_B_cam_logit, torch.ones_like(real_B_cam_logit).to(self.device)) + self.MSE_loss(fake_B_cam_logit, torch.zeros_like(fake_B_cam_logit).to(self.device))
             D_feature_loss_A = self.L1_loss(real_A_z, fake_B_z)
             D_feature_loss_B = self.L1_loss(real_B_z, fake_A_z)
 
-            #D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA)
-            #D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB)
-            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA + D_feature_loss_A)
-            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB + D_feature_loss_B)
+            #D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_loss_MA + D_ad_cam_loss_A + D_ad_loss_LA)
+            #D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_loss_MB + D_ad_cam_loss_B + D_ad_loss_LB)
+            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA) + self.feature_weight * D_feature_loss_A
+            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB) + self.feature_weight * D_feature_loss_B
 
             Discriminator_loss = D_loss_A + D_loss_B
             Discriminator_loss.backward()
@@ -244,22 +246,24 @@ class TLNICE(object) :
             # Update G
             self.G_optim.zero_grad()
 
-            _,  _,  _, _, real_A_z = self.disA(real_A)
-            _,  _,  _, _, real_B_z = self.disB(real_B)
+            _,  _,  _,  _, _, real_A_z = self.disA(real_A)
+            _,  _,  _,  _, _, real_B_z = self.disB(real_B)
 
             fake_A2B = self.gen2B(real_A_z)
             fake_B2A = self.gen2A(real_B_z)
 
-            fake_LA_logit, fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
-            fake_LB_logit, fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
+            fake_LA_logit, fake_MA_logit, fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
+            fake_LB_logit, fake_MB_logit, fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
             
             fake_B2A2B = self.gen2B(fake_A_z)
             fake_A2B2A = self.gen2A(fake_B_z)
 
 
             G_ad_loss_GA = self.MSE_loss(fake_GA_logit, torch.ones_like(fake_GA_logit).to(self.device))
+            G_ad_loss_MA = self.MSE_loss(fake_MA_logit, torch.ones_like(fake_MA_logit).to(self.device))
             G_ad_loss_LA = self.MSE_loss(fake_LA_logit, torch.ones_like(fake_LA_logit).to(self.device))
             G_ad_loss_GB = self.MSE_loss(fake_GB_logit, torch.ones_like(fake_GB_logit).to(self.device))
+            G_ad_loss_MB = self.MSE_loss(fake_MB_logit, torch.ones_like(fake_MB_logit).to(self.device))
             G_ad_loss_LB = self.MSE_loss(fake_LB_logit, torch.ones_like(fake_LB_logit).to(self.device))
 
             G_ad_cam_loss_A = self.MSE_loss(fake_A_cam_logit, torch.ones_like(fake_A_cam_logit).to(self.device))
@@ -275,8 +279,8 @@ class TLNICE(object) :
             G_recon_loss_B = self.L1_loss(fake_B2B, real_B)
 
 
-            G_loss_A = self.adv_weight * (G_ad_loss_GA + G_ad_cam_loss_A + G_ad_loss_LA ) + self.cycle_weight * G_cycle_loss_A + self.recon_weight * G_recon_loss_A
-            G_loss_B = self.adv_weight * (G_ad_loss_GB + G_ad_cam_loss_B + G_ad_loss_LB ) + self.cycle_weight * G_cycle_loss_B + self.recon_weight * G_recon_loss_B
+            G_loss_A = self.adv_weight * (G_ad_loss_GA + G_ad_loss_MA + G_ad_cam_loss_A + G_ad_loss_LA ) + self.cycle_weight * G_cycle_loss_A + self.recon_weight * G_recon_loss_A
+            G_loss_B = self.adv_weight * (G_ad_loss_GB + G_ad_loss_MB + G_ad_cam_loss_B + G_ad_loss_LB ) + self.cycle_weight * G_cycle_loss_B + self.recon_weight * G_recon_loss_B
 
             Generator_loss = G_loss_A + G_loss_B
             Generator_loss.backward()
@@ -332,14 +336,14 @@ class TLNICE(object) :
                     real_A, real_B = real_A.to('cpu'), real_B.to('cpu')
                     # real_A, real_B = real_A.to(self.device), real_B.to(self.device)
                     
-                    _, _,  _, A_heatmap, real_A_z= self.disA(real_A)
-                    _, _,  _, B_heatmap, real_B_z= self.disB(real_B)
+                    _, _, _,  _, A_heatmap, real_A_z= self.disA(real_A)
+                    _, _, _,  _, B_heatmap, real_B_z= self.disB(real_B)
 
                     fake_A2B = self.gen2B(real_A_z)
                     fake_B2A = self.gen2A(real_B_z)
 
-                    _, _,  _,  _,  fake_A_z = self.disA(fake_B2A)
-                    _, _,  _,  _,  fake_B_z = self.disB(fake_A2B)
+                    _, _, _,  _,  _,  fake_A_z = self.disA(fake_B2A)
+                    _, _, _,  _,  _,  fake_B_z = self.disB(fake_A2B)
 
                     fake_B2A2B = self.gen2B(fake_A_z)
                     fake_A2B2A = self.gen2A(fake_B_z)
@@ -374,14 +378,14 @@ class TLNICE(object) :
                     real_A, real_B = real_A.to('cpu'), real_B.to('cpu')
                     # real_A, real_B = real_A.to(self.device), real_B.to(self.device)
 
-                    _, _,  _, A_heatmap, real_A_z= self.disA(real_A)
-                    _, _,  _, B_heatmap, real_B_z= self.disB(real_B)
+                    _, _, _,  _, A_heatmap, real_A_z= self.disA(real_A)
+                    _, _, _,  _, B_heatmap, real_B_z= self.disB(real_B)
 
                     fake_A2B = self.gen2B(real_A_z)
                     fake_B2A = self.gen2A(real_B_z)
 
-                    _, _,  _,  _,  fake_A_z = self.disA(fake_B2A)
-                    _, _,  _,  _,  fake_B_z = self.disB(fake_A2B)
+                    _, _, _,  _,  _,  fake_A_z = self.disA(fake_B2A)
+                    _, _, _,  _,  _,  fake_B_z = self.disB(fake_A2B)
 
                     fake_B2A2B = self.gen2B(fake_A_z)
                     fake_A2B2A = self.gen2A(fake_B_z)
@@ -450,7 +454,7 @@ class TLNICE(object) :
         self.gen2B.eval(), self.gen2A.eval(), self.disA.eval(),self.disB.eval()
         for n, (real_A, real_A_path) in enumerate(self.testA_loader):
             real_A = real_A.to(self.device)
-            _, _,  _, _, real_A_z= self.disA(real_A)
+            _, _, _,  _, _, real_A_z= self.disA(real_A)
             fake_A2B = self.gen2B(real_A_z)
 
             A2B = RGB2BGR(tensor2numpy(denorm(fake_A2B[0])))
@@ -459,7 +463,7 @@ class TLNICE(object) :
 
         for n, (real_B, real_B_path) in enumerate(self.testB_loader):
             real_B = real_B.to(self.device)
-            _, _,  _, _, real_B_z= self.disB(real_B)
+            _, _, _,  _, _, real_B_z= self.disB(real_B)
             fake_B2A = self.gen2A(real_B_z)
 
             B2A = RGB2BGR(tensor2numpy(denorm(fake_B2A[0])))
