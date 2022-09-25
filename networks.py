@@ -132,57 +132,12 @@ class ResnetGenerator(nn.Module):
 
         outat = self.conv_block(outat)
         x = self.conv_block1(x + outat)     
-        
-        #for i in range(self.n_blocks):
-        #    x = getattr(self, 'UpBlock1_' + str(i+1))(x, gamma, beta)
 
         out = self.UpBlock4(torch.cat([self.UpBlock2(x), self.UpBlock3(x)],1))
 
         return out
 
 
-class ResnetBlock(nn.Module):
-    def __init__(self, dim, use_bias):
-        super(ResnetBlock, self).__init__()
-        conv_block = []
-        conv_block += [nn.ReflectionPad2d(1),
-                       nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=0, bias=use_bias),
-                       nn.InstanceNorm2d(dim),
-                       nn.ReLU(True)]
-
-        conv_block += [nn.ReflectionPad2d(1),
-                       nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=0, bias=use_bias),
-                       nn.InstanceNorm2d(dim)]
-
-        self.conv_block = nn.Sequential(*conv_block)
-
-    def forward(self, x):
-        out = x + self.conv_block(x)
-        return out
-
-
-class ResnetAdaILNBlock(nn.Module):
-    def __init__(self, dim, use_bias):
-        super(ResnetAdaILNBlock, self).__init__()
-        self.pad1 = nn.ReflectionPad2d(1)
-        self.conv1 = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=0, bias=use_bias)
-        self.norm1 = adaILN(dim)
-        self.relu1 = nn.ReLU(True)
-
-        self.pad2 = nn.ReflectionPad2d(1)
-        self.conv2 = nn.Conv2d(dim, dim, kernel_size=3, stride=1, padding=0, bias=use_bias)
-        self.norm2 = adaILN(dim)
-
-    def forward(self, x, gamma, beta):
-        out = self.pad1(x)
-        out = self.conv1(out)
-        out = self.norm1(out, gamma, beta)
-        out = self.relu1(out)
-        out = self.pad2(out)
-        out = self.conv2(out)
-        out = self.norm2(out, gamma, beta)
-
-        return out + x
 
 
 class adaILN(nn.Module):
@@ -433,19 +388,3 @@ class Discriminator(nn.Module):
         out1 = self.conv1(x1)
         
         return out0, out1, cam_logit, heatmap, z
-
-class MultiSelfAttentionBlock(nn.Module):
-    def __init__(self, atten, relu, AdaLIN, dim = 64, featur= 256):
-        super(MultiSelfAttentionBlock, self).__init__()
-        self.dim = dim
-        self.featur = featur
-        self.atten  = atten
-        self.relu  = relu
-        self.AdaLIN  = AdaLIN
-		
-    def forward(self, x):
-        out = torch.reshape(x, (self.featur, self.dim, self.dim))
-        out, _ = self.atten(out, out, out)
-        out = self.AdaLIN(self.relu(torch.reshape(out, (1, self.featur, self.dim, self.dim))))
-        
-        return out
