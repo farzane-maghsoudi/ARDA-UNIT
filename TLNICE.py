@@ -209,7 +209,7 @@ class TLNICE(object) :
             self.D_optim.zero_grad()
 
             real_LA_logit,real_MA_logit,real_GA_logit, real_A_cam_logit, _, real_A_z = self.disA(real_A)
-            real_LB_logit,real_MA_logit,real_GB_logit, real_B_cam_logit, _, real_B_z = self.disB(real_B)
+            real_LB_logit,real_MB_logit,real_GB_logit, real_B_cam_logit, _, real_B_z = self.disB(real_B)
 
             fake_A2B = self.gen2B(real_A_z)
             fake_B2A = self.gen2A(real_B_z)
@@ -218,7 +218,7 @@ class TLNICE(object) :
             fake_A2B = fake_A2B.detach()
 
             fake_LA_logit,fake_MA_logit,fake_GA_logit, fake_A_cam_logit, _, fake_A_z = self.disA(fake_B2A)
-            fake_LB_logit,fake_MA_logit,fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
+            fake_LB_logit,fake_MB_logit,fake_GB_logit, fake_B_cam_logit, _, fake_B_z = self.disB(fake_A2B)
 
 
             D_ad_loss_GA = self.MSE_loss(real_GA_logit, torch.ones_like(real_GA_logit).to(self.device)) + self.MSE_loss(fake_GA_logit, torch.zeros_like(fake_GA_logit).to(self.device))
