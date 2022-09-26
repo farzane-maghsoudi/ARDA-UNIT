@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
-from torchvision import models
-from collections import OrderedDict 
 from utils import resize2d
 
 class ResnetGenerator(nn.Module):
