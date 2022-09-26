@@ -292,40 +292,40 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__() 
 
         # proposed Encoder
-        model = [nn.ReflectionPad2d(1),
+        enc1 = [nn.ReflectionPad2d(1),
                  nn.utils.spectral_norm(
-                 nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=0, bias=True)),
-                 nn.LeakyReLU(0.2, True)]  #1+3*2^0 =4
-
-        for i in range(1, 2):   #1+3*2^0 + 3*2^1 =10        
-            mult = 2 ** (i - 1)
-            model += [nn.ReflectionPad2d(1),
-                      nn.utils.spectral_norm(
-                      nn.Conv2d(ndf * mult, ndf * mult * 2, kernel_size=4, stride=2, padding=0, bias=True)),
-                      nn.LeakyReLU(0.2, True)] 
-
-        up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4)]
-        up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.PixelShuffle(2)]
-        up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.PixelShuffle(4)]
-        
-        #up1 = [nn.Conv2d(256, 128, 1, bias=True), nn.ReflectionPad2d(4), nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)]
-        #up2 = [nn.Conv2d(512, 128, 1, bias=True), nn.ReflectionPad2d(2), nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)]
-        #up3 = [nn.Conv2d(1024, 128, 1, bias=True), nn.ReflectionPad2d(1), nn.Upsample(scale_factor=8, mode='bilinear', align_corners=True)]
-        
-        enc1 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
-        enc2 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
-        enc3 = [nn.ReflectionPad2d(1), nn.utils.spectral_norm(nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)), nn.LeakyReLU(0.2, True)]
+                 nn.Conv2d(input_nc, ndf, kernel_size=3, stride=1, padding=0, bias=True)),
+                 nn.LeakyReLU(0.2, True)]
+                 
+        enc11 = [nn.Conv2d(ndf, ndf*2, kernel_size=1, stride=1, bias=True),
+                 nn.MaxPool2d(4),
+                 nn.ReLU(True)
+                 ]
+        enc2 = [nn.ReflectionPad2d(1),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(ndf, ndf*2, kernel_size=3, stride=2, padding=0, bias=True)),
+                 nn.LeakyReLU(0.2, True)
+                 ]
+        enc22 = [nn.MaxPool2d(2),
+                 nn.ReLU(True)]
+        enc3 = [nn.ReflectionPad2d(1),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(ndf*2, ndf*4, kernel_size=3, stride=2, padding=0, bias=True)),
+                 nn.LeakyReLU(0.2, True)
+                 ]
+        enc33 = [nn.Conv2d(ndf*4, ndf*2, kernel_size=1, stride=1, bias=True),
+                 nn.ReLU(True)]
 
         #Proposed adaptive feature fution.
         self.softmaxAFF = nn.Softmax(3)
         AFF1 = [nn.ReflectionPad2d(1),
-                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=True),
+                nn.Conv2d(ndf*2, 1, kernel_size=3, stride=1, padding=0, bias=True),
                 nn.InstanceNorm2d(128)]
         AFF2 = [nn.ReflectionPad2d(1),
-                nn.Conv2d(128, 1, kernel_size=3, stride=1, padding=0, bias=True)]
-        AFF = [nn.Conv2d(3*128, 128, kernel_size=1, stride=1, padding=0, bias=True),
+                nn.Conv2d(ndf*2, 1, kernel_size=3, stride=1, padding=0, bias=True)]
+        AFF = [nn.Conv2d(3*ndf*2, ndf*2, kernel_size=1, stride=1, padding=0, bias=True),
                nn.ReflectionPad2d(1),
-               nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=0, bias=True)]
+               nn.Conv2d(ndf*2, ndf*2, kernel_size=3, stride=1, padding=0, bias=True)]
         
         
         # Class Activation Map
@@ -339,35 +339,47 @@ class Discriminator(nn.Module):
         #Discriminator
         Dis1 = [nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf, ndf, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(ndf, ndf*2, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(ndf*2, ndf*4, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]
         Dis2 = [nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf*2, ndf*2, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True),
                       nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf*2, ndf*4, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.LeakyReLU(0.2, True),
+                      nn.ReflectionPad2d(1),
+                      nn.utils.spectral_norm(
+                      nn.Conv2d(ndf*4, ndf*8, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]
         Dis3 = [nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(128, 256, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf*4, ndf*4, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True),
                       nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(256, 512, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf*4, ndf*8, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True),
                       nn.ReflectionPad2d(1),
                       nn.utils.spectral_norm(
-                      nn.Conv2d(512, 1024, kernel_size=4, stride=2, padding=0, bias=True)),
+                      nn.Conv2d(ndf*8, ndf*16, kernel_size=4, stride=2, padding=0, bias=True)),
                       nn.LeakyReLU(0.2, True)]
         
         self.conv1 = nn.utils.spectral_norm(   #1+3*2^0 + 3*2^1 + 3*2^2 +3*2^3 + 3*2^3= 70
-            nn.Conv2d(256, 1, kernel_size=4, stride=1, padding=0, bias=False))
+            nn.Conv2d(ndf*4, 1, kernel_size=4, stride=1, padding=0, bias=False))
         self.conv2 = nn.utils.spectral_norm(
-            nn.Conv2d(512, 1, kernel_size=4, stride=1, padding=0, bias=False))
+            nn.Conv2d(ndf*8, 1, kernel_size=4, stride=1, padding=0, bias=False))
         self.conv3 = nn.utils.spectral_norm(
-            nn.Conv2d(1024, 1, kernel_size=4, stride=1, padding=0, bias=False))
+            nn.Conv2d(ndf*16, 1, kernel_size=4, stride=1, padding=0, bias=False))
         
 
         self.pad = nn.ReflectionPad2d(1)
@@ -379,18 +391,29 @@ class Discriminator(nn.Module):
         self.enc1 = nn.Sequential(*enc1)
         self.enc2 = nn.Sequential(*enc2)
         self.enc3 = nn.Sequential(*enc3)
+        self.enc11 = nn.Sequential(*enc11)
+        self.enc22 = nn.Sequential(*enc22)
+        self.enc33 = nn.Sequential(*enc33)
         self.AFF1 = nn.Sequential(*AFF1)
         self.AFF2 = nn.Sequential(*AFF2)
         self.AFF = nn.Sequential(*AFF)
-        self.up1 = nn.Sequential(*up1)
-        self.up2 = nn.Sequential(*up2)
-        self.up3 = nn.Sequential(*up3)
-        
-        self.model = nn.Sequential(*model)
 
     def forward(self, input):
       
-        x_0 = x = self.model(input)
+        x1 = self.enc1(input)
+        x2 = self.enc2(x1)
+        x3 = self.enc3(x2)
+
+        x11 = self.enc11(x1)
+        x22 = self.enc22(x2)
+        x33 = self.enc33(x3)
+
+        x11 = x11 * self.softmaxAFF(self.AFF1(x11))
+        x22 = x22 * self.softmaxAFF(self.AFF2(x22))
+
+        x_0 = x = self.AFF(torch.cat([x11, x22, x33], 1))
+
+        #x_0 = x = self.model(input)
 
         gap = torch.nn.functional.adaptive_avg_pool2d(x, 1)
         gmp = torch.nn.functional.adaptive_max_pool2d(x, 1)
@@ -407,9 +430,9 @@ class Discriminator(nn.Module):
         heatmap = torch.sum(x, dim=1, keepdim=True)
         z = x
 
-        x1 = self.Dis1(x)
-        x2 = self.Dis2(x)
-        x3 = self.Dis3(x)
+        x1 = self.Dis1(x1)
+        x2 = self.Dis2(x2)
+        x3 = self.Dis3(x3)
         x1 = self.pad(x1)
         x2 = self.pad(x2)
         x3 = self.pad(x3)
@@ -419,36 +442,3 @@ class Discriminator(nn.Module):
         out3 = self.conv3(x3)
         
         return out1, out2, out3, cam_logit, heatmap, z
-
-class pre_model(nn.Module):
-    def __init__(self, output_layers, *args):
-        super().__init__(*args)
-        self.output_layers = output_layers
-        self.selected_out = OrderedDict()
-        self.pretrained = models.resnet152(pretrained=True).cuda()
-        self.fhooks = []
-
-        for i,l in enumerate(list(self.pretrained._modules.keys())):
-            if i in self.output_layers:
-                self.fhooks.append(getattr(self.pretrained,l).register_forward_hook(self.forward_hook(l)))
-
-    def forward_hook(self,layer_name):
-        def hook(module, input, output):
-            self.selected_out[layer_name] = output
-        return hook
-
-    def forward(self, x):
-        out = self.pretrained(x)
-        return self.selected_out
-
-def feature_pretrain(x):
-    x = resize2d(x, (224,224))
-    model = pre_model(output_layers = [0,1,2,3,4,5,6,7,8,9])
-    dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    model.to(dev)
-    layerout = model(x)
-    layer1out = layerout['layer1']
-    layer2out = layerout['layer2']
-    layer3out = layerout['layer3']
-
-    return layer1out, layer2out, layer3out
