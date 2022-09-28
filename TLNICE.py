@@ -229,19 +229,13 @@ class TLNICE(object) :
             D_ad_loss_LB = self.MSE_loss(real_LB_logit, torch.ones_like(real_LB_logit).to(self.device)) + self.MSE_loss(fake_LB_logit, torch.zeros_like(fake_LB_logit).to(self.device))
             D_ad_cam_loss_A = self.MSE_loss(real_A_cam_logit, torch.ones_like(real_A_cam_logit).to(self.device)) + self.MSE_loss(fake_A_cam_logit, torch.zeros_like(fake_A_cam_logit).to(self.device))
             D_ad_cam_loss_B = self.MSE_loss(real_B_cam_logit, torch.ones_like(real_B_cam_logit).to(self.device)) + self.MSE_loss(fake_B_cam_logit, torch.zeros_like(fake_B_cam_logit).to(self.device))
-            D_feature_loss_A = self.L1_loss(real_A_z, fake_B_z)
-            D_feature_loss_B = self.L1_loss(real_B_z, fake_A_z)
-
-            #D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_loss_MA + D_ad_cam_loss_A + D_ad_loss_LA)
-            #D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_loss_MB + D_ad_cam_loss_B + D_ad_loss_LB)
-            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_cam_loss_A + D_ad_loss_LA) + self.feature_weight * D_feature_loss_A
-            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_cam_loss_B + D_ad_loss_LB) + self.feature_weight * D_feature_loss_B
+            
+            D_loss_A = self.adv_weight * (D_ad_loss_GA + D_ad_loss_MA + D_ad_cam_loss_A + D_ad_loss_LA)
+            D_loss_B = self.adv_weight * (D_ad_loss_GB + D_ad_loss_MB + D_ad_cam_loss_B + D_ad_loss_LB)
 
             Discriminator_loss = D_loss_A + D_loss_B
             Discriminator_loss.backward()
-            self.D_optim.step()
-            # writer.add_scalar('D/%s' % 'loss_A', D_loss_A.data.cpu().numpy(), global_step=step)  
-            # writer.add_scalar('D/%s' % 'loss_B', D_loss_B.data.cpu().numpy(), global_step=step)  
+            self.D_optim.step() 
 
             # Update G
             self.G_optim.zero_grad()
@@ -257,7 +251,6 @@ class TLNICE(object) :
             
             fake_B2A2B = self.gen2B(fake_A_z)
             fake_A2B2A = self.gen2A(fake_B_z)
-
 
             G_ad_loss_GA = self.MSE_loss(fake_GA_logit, torch.ones_like(fake_GA_logit).to(self.device))
             G_ad_loss_MA = self.MSE_loss(fake_MA_logit, torch.ones_like(fake_MA_logit).to(self.device))
@@ -277,30 +270,18 @@ class TLNICE(object) :
 
             G_recon_loss_A = self.L1_loss(fake_A2A, real_A)
             G_recon_loss_B = self.L1_loss(fake_B2B, real_B)
+            
+            G_feature_loss_A = self.L1_loss(real_A_z, fake_B_z) + self.L1_loss(real_B_z, fake_B_z)
+            G_feature_loss_B = self.L1_loss(real_B_z, fake_A_z) + self.L1_loss(real_A_z, fake_A_z)
 
-
-            G_loss_A = self.adv_weight * (G_ad_loss_GA + G_ad_loss_MA + G_ad_cam_loss_A + G_ad_loss_LA ) + self.cycle_weight * G_cycle_loss_A + self.recon_weight * G_recon_loss_A
-            G_loss_B = self.adv_weight * (G_ad_loss_GB + G_ad_loss_MB + G_ad_cam_loss_B + G_ad_loss_LB ) + self.cycle_weight * G_cycle_loss_B + self.recon_weight * G_recon_loss_B
+            G_loss_A = self.adv_weight * (G_ad_loss_GA + G_ad_loss_MA + G_ad_cam_loss_A + G_ad_loss_LA ) + self.cycle_weight * G_cycle_loss_A + self.recon_weight * G_recon_loss_A + self.feature_weight * G_feature_loss_A
+            G_loss_B = self.adv_weight * (G_ad_loss_GB + G_ad_loss_MB + G_ad_cam_loss_B + G_ad_loss_LB ) + self.cycle_weight * G_cycle_loss_B + self.recon_weight * G_recon_loss_B + self.feature_weight * G_feature_loss_B
 
             Generator_loss = G_loss_A + G_loss_B
             Generator_loss.backward()
             self.G_optim.step()
-            # writer.add_scalar('G/%s' % 'loss_A', G_loss_A.data.cpu().numpy(), global_step=step)  
-            # writer.add_scalar('G/%s' % 'loss_B', G_loss_B.data.cpu().numpy(), global_step=step)  
 
             print("[%5d/%5d] time: %4.4f d_loss: %.8f, g_loss: %.8f" % (step, self.iteration, time.time() - start_time, Discriminator_loss, Generator_loss))
-
-            # for name, param in self.gen2B.named_parameters():
-            #     writer.add_histogram(name + "_gen2B", param.data.cpu().numpy(), global_step=step)
-
-            # for name, param in self.gen2A.named_parameters():
-            #     writer.add_histogram(name + "_gen2A", param.data.cpu().numpy(), global_step=step)
-
-            # for name, param in self.disA.named_parameters():
-            #     writer.add_histogram(name + "_disA", param.data.cpu().numpy(), global_step=step)
-
-            # for name, param in self.disB.named_parameters():
-            #     writer.add_histogram(name + "_disB", param.data.cpu().numpy(), global_step=step)
 
             
             if step % self.save_freq == 0:
