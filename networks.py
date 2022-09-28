@@ -295,29 +295,24 @@ class Discriminator(nn.Module):
 
         # proposed Encoder
         enc1 = [nn.ReflectionPad2d(1),
-                 nn.Conv2d(input_nc, ndf, kernel_size=3, stride=1, padding=0, bias=True),
-                 nn.InstanceNorm2d(input_nc),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(input_nc, ndf, kernel_size=3, stride=1, padding=0, bias=True)),
                  nn.ReLU(True)]
                  
         enc11 = [nn.Conv2d(ndf, ndf*2, kernel_size=1, stride=1, bias=True),
                  nn.MaxPool2d(4),
                  nn.ReLU(True)
                  ]
-        #enc2 = [nn.ReflectionPad2d(1),
-        #         nn.utils.spectral_norm(
-        #         nn.Conv2d(ndf, ndf*2, kernel_size=3, stride=2, padding=0, bias=True)),
-        #         nn.LeakyReLU(0.2, True)
-        #         ]
         enc2 = [nn.ReflectionPad2d(1),
-                 nn.Conv2d(ndf, ndf*2, kernel_size=3, stride=2, padding=0, bias=True),
-                 nn.InstanceNorm2d(ndf),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(ndf, ndf*2, kernel_size=3, stride=2, padding=0, bias=True)),
                  nn.ReLU(True)
                  ]
         enc22 = [nn.MaxPool2d(2),
                  nn.ReLU(True)]
         enc3 = [nn.ReflectionPad2d(1),
-                 nn.Conv2d(ndf*2, ndf*4, kernel_size=3, stride=2, padding=0, bias=True),
-                 nn.InstanceNorm2d(ndf*2),
+                 nn.utils.spectral_norm(
+                 nn.Conv2d(ndf*2, ndf*4, kernel_size=3, stride=2, padding=0, bias=True)),
                  nn.ReLU(True)
                  ]
         enc33 = [nn.Conv2d(ndf*4, ndf*2, kernel_size=1, stride=1, bias=True),
