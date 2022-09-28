@@ -12,12 +12,12 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='YOUR_DATASET_NAME', help='dataset_name')
 
     #parser.add_argument('--iteration', type=int, default=300000, help='The number of training iterations')
-    parser.add_argument('--iteration', type=int, default=30, help='The number of training iterations')
+    parser.add_argument('--iteration', type=int, default=300000, help='The number of training iterations')
     parser.add_argument('--batch_size', type=int, default=1, help='The size of batch size')
     #parser.add_argument('--print_freq', type=int, default=1000, help='The number of image print freq')
     #parser.add_argument('--save_freq', type=int, default=100000, help='The number of model save freq')
-    parser.add_argument('--print_freq', type=int, default=100, help='The number of image print freq')
-    parser.add_argument('--save_freq', type=int, default=100, help='The number of model save freq')
+    parser.add_argument('--print_freq', type=int, default=2000, help='The number of image print freq')
+    parser.add_argument('--save_freq', type=int, default=2000, help='The number of model save freq')
     parser.add_argument('--decay_flag', type=str2bool, default=True, help='The decay_flag')
 
     parser.add_argument('--lr', type=float, default=0.0001, help='The learning rate')
