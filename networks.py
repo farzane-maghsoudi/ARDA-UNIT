@@ -96,6 +96,7 @@ class ResnetGenerator(nn.Module):
         self.UpBlock4 = nn.Sequential(*UpBlock4)
         self.conv_block = nn.Sequential(*conv_block)
         self.conv_block1 = nn.Sequential(*conv_block1)
+        self.mult = 4
 
     def forward(self, z):
         x = z
@@ -108,28 +109,28 @@ class ResnetGenerator(nn.Module):
             x_ = self.FC(x.view(x.shape[0], -1))
         gamma, beta = self.gamma(x_), self.beta(x_)
 
-        outat = torch.reshape(x, (ngf * mult, ngf, ngf))
+        outat = torch.reshape(x, (self.ngf * self.mult,  self.ngf,  self.ngf))
         outat, _ = self.atten(outat, outat, outat)
-        xa11 = xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, ngf * mult, ngf, ngf))), gamma, beta))
+        xa11 = xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1,  self.ngf * self.mult,  self.ngf,  self.ngf))), gamma, beta))
         if self.n_blocks>1:
           for i in range(2, self.n_blocks+1):
             if i%3 == 2:
-              outat = torch.reshape(outat, (ngf * mult, ngf, ngf))
+              outat = torch.reshape(outat, ( self.ngf * self.mult,  self.ngf,  self.ngf))
               outat, _ = self.atten(outat, outat, outat)
-              xa2 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, ngf * mult, ngf, ngf))), gamma, beta))
+              xa2 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1,  self.ngf * self.mult,  self.ngf,  self.ngf))), gamma, beta))
             elif i%3 == 0:
-              outat = torch.reshape(outat + xa1, (ngf * mult, ngf, ngf))
+              outat = torch.reshape(outat + xa1, ( self.ngf * self.mult,  self.ngf,  self.ngf))
               outat, _ = self.atten(outat, outat, outat)
-              xa3 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, ngf * mult, ngf, ngf))), gamma, beta))
+              xa3 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, self.ngf * self.mult,  self.ngf,  self.ngf))), gamma, beta))
             elif i < 6:
-              outat = torch.reshape(outat + xa1 + xa2, (ngf * mult, ngf, ngf))
+              outat = torch.reshape(outat + xa1 + xa2, ( self.ngf * self.mult,  self.ngf,  self.ngf))
               outat, _ = self.atten(outat, outat, outat)
-              xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, ngf * mult, ngf, ngf))), gamma, beta))
+              xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1,  self.ngf * self.mult,  self.ngf,  self.ngf))), gamma, beta))
             else:
-              outat = torch.reshape(outat + xa1 + xa2 + xa11, (ngf * mult, ngf, ngf))
+              outat = torch.reshape(outat + xa1 + xa2 + xa11, ( self.ngf * self.mult,  self.ngf,  self.ngf))
               outat, _ = self.atten(outat, outat, outat)
               xa11 = xa1
-              xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1, ngf * mult, ngf, ngf))), gamma, beta))
+              xa1 = outat = self.attconv(self.attnorm(self.attrelu(torch.reshape(outat, (1,  self.ngf * self.mult,  self.ngf,  self.ngf))), gamma, beta))
 
         outat = self.conv_block(outat)
         x = self.conv_block1(x + outat)     
