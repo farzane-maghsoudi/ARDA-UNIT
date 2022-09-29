@@ -286,6 +286,13 @@ class TLNICE(object) :
             
             if step % self.save_freq == 0:
                 self.save(os.path.join(self.result_dir, self.dataset, 'model'), step)
+                #save_dr_latest = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + "_params_latest.pt"
+                #save_TTLGAN_latest = "/content/TTL-GAN/results/" + self.dataset + "_params_latest.pt"
+                save_dr_step = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + '_params_%07d.pt' % step
+                save_TTLGAN_step = "/content/TTL-GAN/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step
+                import shutil
+                #shutil.copy( save_TTLGAN_latest , save_dr_latest )
+                shutil.copy( save_TTLGAN_step , save_dr_step )
 
             if step % self.print_freq == 0:
                 print('current D_learning rate:{}'.format(self.D_optim.param_groups[0]['lr']))
@@ -405,13 +412,6 @@ class TLNICE(object) :
         params['G_optimizer'] = self.G_optim.state_dict()
         params['start_iter'] = step
         torch.save(params, os.path.join(dir, self.dataset + '_params_%07d.pt' % step))
-        b = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + "_params_latest.pt"
-        c = "/content/TTL-GAN/results/" + self.dataset + "_params_latest.pt"
-        f1 = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + '_params_%07d.pt' % step + ".pt"
-        f2 = "/content/TTL-GAN/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step + ".pt"
-        import shutil
-        shutil.copy( c , b )
-        shutil.copy( f2 , f1 )
 
 
     def save_path(self, path_g,step):
