@@ -405,6 +405,10 @@ class TLNICE(object) :
         params['G_optimizer'] = self.G_optim.state_dict()
         params['start_iter'] = step
         torch.save(params, os.path.join(dir, self.dataset + '_params_%07d.pt' % step))
+        b = "/content/gdrive/MyDrive/checkpointTTL-GAN/horse2zebra_params_latest.pt"
+        c = "/content/TTL-GAN/results/horse2zebra_params_latest.pt"
+        import shutil
+        shutil.copy( c , b )
 
 
     def save_path(self, path_g,step):
