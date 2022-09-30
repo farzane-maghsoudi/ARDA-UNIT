@@ -280,19 +280,33 @@ class TLNICE(object) :
 
             Generator_loss = G_loss_A + G_loss_B
             Generator_loss.backward()
+            #save_dr_latest = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + "_params_latest.pt"
+            #save_TTLGAN_latest = "/content/TTL-GAN/results/" + self.dataset + "_params_latest.pt"
+            #save_dr_step = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + '_params_%07d.pt' % step
+            #save_TTLGAN_step = "/content/TTL-GAN/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step
+            #shutil.copy( save_TTLGAN_latest , save_dr_latest )
+            #shutil.copy( save_TTLGAN_step , save_dr_step )
             self.G_optim.step()
+            # writer.add_scalar('G/%s' % 'loss_A', G_loss_A.data.cpu().numpy(), global_step=step)  
+            # writer.add_scalar('G/%s' % 'loss_B', G_loss_B.data.cpu().numpy(), global_step=step)  
 
             print("[%5d/%5d] time: %4.4f d_loss: %.8f, g_loss: %.8f" % (step, self.iteration, time.time() - start_time, Discriminator_loss, Generator_loss))
+
+            # for name, param in self.gen2B.named_parameters():
+            #     writer.add_histogram(name + "_gen2B", param.data.cpu().numpy(), global_step=step)
+
+            # for name, param in self.gen2A.named_parameters():
+            #     writer.add_histogram(name + "_gen2A", param.data.cpu().numpy(), global_step=step)
+
+            # for name, param in self.disA.named_parameters():
+            #     writer.add_histogram(name + "_disA", param.data.cpu().numpy(), global_step=step)
+
+            # for name, param in self.disB.named_parameters():
+            #     writer.add_histogram(name + "_disB", param.data.cpu().numpy(), global_step=step)
 
             
             if step % self.save_freq == 0:
                 self.save(os.path.join(self.result_dir, self.dataset, 'model'), step)
-                #save_dr_latest = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + "_params_latest.pt"
-                #save_TTLGAN_latest = "/content/TTL-GAN/results/" + self.dataset + "_params_latest.pt"
-                save_dr_step = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + '_params_%07d.pt' % step
-                save_TTLGAN_step = "/content/TTL-GAN/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step
-                #shutil.copy( save_TTLGAN_latest , save_dr_latest )
-                shutil.copy( save_TTLGAN_step , save_dr_step )
 
             if step % self.print_freq == 0:
                 print('current D_learning rate:{}'.format(self.D_optim.param_groups[0]['lr']))
@@ -442,7 +456,7 @@ class TLNICE(object) :
         self.gen2B.eval(), self.gen2A.eval(), self.disA.eval(),self.disB.eval()
         for n, (real_A, real_A_path) in enumerate(self.testA_loader):
             real_A = real_A.to(self.device)
-            _, _, _,  _, _, real_A_z= self.disA(real_A)
+            _, _,  _, _, real_A_z= self.disA(real_A)
             fake_A2B = self.gen2B(real_A_z)
 
             A2B = RGB2BGR(tensor2numpy(denorm(fake_A2B[0])))
@@ -451,7 +465,7 @@ class TLNICE(object) :
 
         for n, (real_B, real_B_path) in enumerate(self.testB_loader):
             real_B = real_B.to(self.device)
-            _, _, _,  _, _, real_B_z= self.disB(real_B)
+            _, _,  _, _, real_B_z= self.disB(real_B)
             fake_B2A = self.gen2A(real_B_z)
 
             B2A = RGB2BGR(tensor2numpy(denorm(fake_B2A[0])))
