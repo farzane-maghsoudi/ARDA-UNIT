@@ -320,7 +320,7 @@ class Discriminator(nn.Module):
 
         #Proposed adaptive feature fution.
         self.softmaxAFF = nn.Softmax(3)
-        AFF1 = [nn.ReflectionPad2d(1),
+        AFF3 = [nn.ReflectionPad2d(1),
                 nn.Conv2d(ndf*2, 1, kernel_size=3, stride=1, padding=0, bias=True),
                 nn.InstanceNorm2d(ndf*2)]
         AFF2 = [nn.ReflectionPad2d(1),
@@ -396,7 +396,7 @@ class Discriminator(nn.Module):
         self.enc11 = nn.Sequential(*enc11)
         self.enc22 = nn.Sequential(*enc22)
         self.enc33 = nn.Sequential(*enc33)
-        self.AFF1 = nn.Sequential(*AFF1)
+        self.AFF3 = nn.Sequential(*AFF3)
         self.AFF2 = nn.Sequential(*AFF2)
         self.AFF = nn.Sequential(*AFF)
 
@@ -410,7 +410,8 @@ class Discriminator(nn.Module):
         x22 = self.enc22(x2)
         x33 = self.enc33(x3)
 
-        x11 = x11 * self.softmaxAFF(self.AFF1(x11))
+        #x11 = x11 * self.softmaxAFF(self.AFF1(x11))
+        x33 = x33 * self.softmaxAFF(self.AFF3(x33))
         x22 = x22 * self.softmaxAFF(self.AFF2(x22))
 
         x_0 = x = self.AFF(torch.cat([x11, x22, x33], 1))
