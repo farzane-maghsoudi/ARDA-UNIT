@@ -14,7 +14,8 @@ from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import numpy as np
 import torch
 from scipy import linalg
-from scipy.misc import imread
+#from scipy.misc import imread
+from matplotlib.pyplot import imread
 from torch.nn.functional import adaptive_avg_pool2d
 from sklearn.metrics.pairwise import polynomial_kernel
 
