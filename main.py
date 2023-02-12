@@ -28,7 +28,7 @@ def parse_args():
     parser.add_argument('--feature_weight', type=int, default=15, help='Weight for Feature similarity')
 
     parser.add_argument('--ch', type=int, default=64, help='base channel number per layer')
-    parser.add_argument('--n_res', type=int, default=6, help='The number of resblock')
+    parser.add_argument('--n_res', type=int, default=100, help='The number of resblock')
     parser.add_argument('--n_dis', type=int, default=7, help='The number of discriminator layer')
 
     parser.add_argument('--img_size', type=int, default=256, help='The size of image')
