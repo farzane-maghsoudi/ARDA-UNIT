@@ -313,7 +313,7 @@ class TLNICE(object) :
                 #save_dr_latest = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + "_params_latest.pt"
                 #save_TTLGAN_latest = "/content/TTL-GAN/results/" + self.dataset + "_params_latest.pt"
                 save_dr_step = "/content/gdrive/MyDrive/checkpointTTL-GAN/" + self.dataset + '_params_%07d.pt' % step
-                save_TTLGAN_step = "/content/TTL-GAN/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step
+                save_TTLGAN_step = "/content/ARDA-UNIT/results/" + self.dataset + "/model/" + self.dataset + '_params_%07d.pt' % step
                 #shutil.copy( save_TTLGAN_latest , save_dr_latest )
                 shutil.copy( save_TTLGAN_step , save_dr_step )
 
