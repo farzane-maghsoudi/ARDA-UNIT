@@ -9,6 +9,7 @@ from glob import glob
 from thop import profile
 from thop import clever_format
 import shutil
+from random import randint
 
 class TLNICE(object) :
     def __init__(self, args):
@@ -196,16 +197,16 @@ class TLNICE(object) :
                 self.D_optim.param_groups[0]['lr'] -= (self.lr / (self.iteration // 2))
 
             try:
-                real_A, _ = trainA_iter.next()
+                real_A, _ = next(trainA_iter)
             except:
                 trainA_iter = iter(self.trainA_loader)
-                real_A, _ = trainA_iter.next()
+                real_A, _ = next(trainA_iter)
 
             try:
-                real_B, _ = trainB_iter.next()
+                real_B, _ = next(trainB_iter)
             except:
                 trainB_iter = iter(self.trainB_loader)
-                real_B, _ = trainB_iter.next()
+                real_B, _ = next(trainB_iter)
 
             real_A, real_B = real_A.to(self.device), real_B.to(self.device)
 
